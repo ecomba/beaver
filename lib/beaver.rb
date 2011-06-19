@@ -3,18 +3,32 @@ class Beaver
     @app, @options = app, options
   end
 
-  def call(env)
-    request = Rack::Request.new(env)
-    if request.post?
-      if request.params['email'] == 'test@beaver.com' && request.params['password'] == 's3cr3t'
-        response = Rack::Response.new
-        return [302,{'Location' => request.path},'']
-      end
-    end
+  def init_environment env
+    @response = Rack::Response.new
+    @request = Rack::Request.new(env)
+  end
 
-    response = Rack::Response.new
-    response.write '<form'
-    return response.finish
+  def authorised?
+    @request.params['email'] == 'test@beaver.com' && @request.params['password'] == 's3cr3t'
+  end
+
+  def open_dam
+    [302,{'Location' => @request.path},'']
+  end
+
+  def close_dam
+    @response.write '<form'
+    @response.finish
+  end
+
+  def call(env)
+    init_environment env
+
+    if @request.post? && authorised?
+      open_dam
+    else
+      close_dam
+    end
   end
 end
 
