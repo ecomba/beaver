@@ -7,8 +7,14 @@ require File.join(File.dirname(__FILE__), '..', 'testapp')
 require 'capybara'
 require 'capybara/cucumber'
 require 'rspec'
+$: << 'lib'
+require 'beaver'
 
-Capybara.app = Website
+beaver = Rack::Builder.app do
+  run Website
+end
+
+Capybara.app = beaver
 
 class WebsiteWorld
   include Capybara::DSL
