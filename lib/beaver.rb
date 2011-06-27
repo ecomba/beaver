@@ -4,6 +4,7 @@ class Beaver
   end
 
   def init_environment env
+    @env = env
     @response = Rack::Response.new
     @request = Rack::Request.new(env)
   end
@@ -13,7 +14,7 @@ class Beaver
   end
 
   def open_dam
-    [302,{'Location' => @request.path},'']
+    [302,{'Location' => @request.path, 'Content-Type' => 'text/plain', 'Set-Cookie' => 'beaver=in;path=/'},['']]
   end
 
   def default_form
@@ -27,8 +28,9 @@ class Beaver
 
   def call(env)
     init_environment env
-
-    if @request.post? && authorised?
+    if @request.cookies['beaver'] == 'in'
+      @app.call env
+    elsif @request.post? && authorised?
       open_dam
     else
       close_dam
