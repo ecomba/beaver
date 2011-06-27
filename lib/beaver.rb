@@ -3,22 +3,35 @@ class Beaver
     @app, @options = app, options
   end
 
-  def init_environment env
+  def call(env)
+    setup_rack_environment env
+    return @app.call @env if cookie_set?
+    return open_dam if allowed_to_cross?
+    return close_dam
+  end
+
+  private
+  def setup_rack_environment env
     @env = env
     @response = Rack::Response.new
     @request = Rack::Request.new(env)
   end
 
-  def authorised?
-    @request.params['email'] == 'test@beaver.com' && @request.params['password'] == 's3cr3t'
-  end
-
   def open_dam
-    [302,{'Location' => @request.path, 'Content-Type' => 'text/plain', 'Set-Cookie' => 'beaver=in;path=/'},['']]
+    [redirect, dam_headers, empty_body]
   end
 
-  def default_form
-    File.read(File.dirname(__FILE__) + '/beaver_form.html')
+  def redirect
+    302
+  end
+
+  def dam_headers
+    {'Location' => @request.path, 'Content-Type' => 'text/plain',
+     'Set-Cookie' => 'beaver=in;path=/'}
+  end
+
+  def empty_body
+    ['']
   end
 
   def close_dam
@@ -26,15 +39,20 @@ class Beaver
     @response.finish
   end
 
-  def call(env)
-    init_environment env
-    if @request.cookies['beaver'] == 'in'
-      @app.call env
-    elsif @request.post? && authorised?
-      open_dam
-    else
-      close_dam
-    end
+  def default_form
+    File.read(File.dirname(__FILE__) + '/beaver_form.html')
+  end
+
+  def authorised?
+    @request.params['email'] == 'test@beaver.com' && @request.params['password'] == 's3cr3t'
+  end
+
+  def allowed_to_cross?
+    @request.post? && authorised?
+  end
+
+  def cookie_set?
+    @request.cookies['beaver'] == 'in'
   end
 end
 
